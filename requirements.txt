@@ -1,0 +1,4 @@
+aiogram==3.17.0
+aiosqlite==0.21.0
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
