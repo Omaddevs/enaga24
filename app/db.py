@@ -119,6 +119,22 @@ class Database:
                 added_by INTEGER,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS scheduled_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                content_type TEXT NOT NULL,
+                text TEXT,
+                file_id TEXT,
+                from_chat_id INTEGER,
+                from_message_id INTEGER,
+                dest_id INTEGER,
+                dest_title TEXT NOT NULL,
+                scheduled_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                sent_at TEXT
+            );
             """
         )
         await c.commit()
@@ -480,3 +496,80 @@ class Database:
             "by_cat": [dict(r) for r in cat_rows],
             "by_dest": [dict(r) for r in dest_rows],
         }
+
+    async def add_scheduled_post(
+        self,
+        admin_id: int,
+        content_type: str,
+        text: str | None,
+        file_id: str | None,
+        from_chat_id: int | None,
+        from_message_id: int | None,
+        dest_id: int | None,
+        dest_title: str,
+        scheduled_at: str,
+    ) -> int:
+        cur = await self._c().execute(
+            """
+            INSERT INTO scheduled_posts
+                (admin_id, content_type, text, file_id, from_chat_id, from_message_id,
+                 dest_id, dest_title, scheduled_at, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            """,
+            (
+                admin_id,
+                content_type,
+                text,
+                file_id,
+                from_chat_id,
+                from_message_id,
+                dest_id,
+                dest_title,
+                scheduled_at,
+                _now(),
+            ),
+        )
+        await self._c().commit()
+        return int(cur.lastrowid)
+
+    async def get_scheduled_post(self, sched_id: int) -> dict[str, Any] | None:
+        cur = await self._c().execute("SELECT * FROM scheduled_posts WHERE id=?", (sched_id,))
+        row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def pending_scheduled_posts(self, admin_id: int | None = None) -> list[dict[str, Any]]:
+        if admin_id is None:
+            cur = await self._c().execute(
+                "SELECT * FROM scheduled_posts WHERE status='pending' ORDER BY scheduled_at ASC"
+            )
+        else:
+            cur = await self._c().execute(
+                """
+                SELECT * FROM scheduled_posts
+                WHERE status='pending' AND admin_id=?
+                ORDER BY scheduled_at ASC
+                """,
+                (admin_id,),
+            )
+        return [dict(r) for r in await cur.fetchall()]
+
+    async def due_scheduled_posts(self, now_utc: str) -> list[dict[str, Any]]:
+        cur = await self._c().execute(
+            "SELECT * FROM scheduled_posts WHERE status='pending' AND scheduled_at<=? ORDER BY scheduled_at ASC",
+            (now_utc,),
+        )
+        return [dict(r) for r in await cur.fetchall()]
+
+    async def set_scheduled_post_status(self, sched_id: int, status: str) -> None:
+        await self._c().execute(
+            "UPDATE scheduled_posts SET status=?, sent_at=? WHERE id=?",
+            (status, _now(), sched_id),
+        )
+        await self._c().commit()
+
+    async def cancel_scheduled_post(self, sched_id: int) -> None:
+        await self._c().execute(
+            "UPDATE scheduled_posts SET status='cancelled' WHERE id=? AND status='pending'",
+            (sched_id,),
+        )
+        await self._c().commit()

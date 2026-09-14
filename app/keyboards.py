@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -12,6 +14,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from app.texts import ADMIN, t
 
 CHANNEL_URL = "https://t.me/enaga_1"
+VIP_ADMIN_URL = "https://t.me/vip_admin_channels"
+
+UZ_WEEKDAYS = ["Dush", "Sesh", "Chor", "Pay", "Juma", "Shan", "Yak"]
+UZ_MONTHS = [
+    "yanv", "fev", "mart", "apr", "may", "iyun",
+    "iyul", "avg", "sen", "okt", "noy", "dek",
+]
 
 
 def lang_kb() -> InlineKeyboardMarkup:
@@ -93,6 +102,7 @@ def admin_kb() -> ReplyKeyboardMarkup:
     kb.button(text=ADMIN["btn_sub"])
     kb.button(text=ADMIN["btn_views"])
     kb.button(text=ADMIN["btn_admins"])
+    kb.button(text=ADMIN["btn_sched"])
     kb.button(text=ADMIN["btn_back_user"])
     kb.adjust(2)
     return kb.as_markup(resize_keyboard=True)
@@ -104,6 +114,13 @@ def listing_admin_kb(listing_id: int) -> InlineKeyboardMarkup:
     kb.button(text=ADMIN["btn_approve"], callback_data=f"adm:ok:{listing_id}")
     kb.button(text=ADMIN["btn_reject"], callback_data=f"adm:no:{listing_id}")
     kb.adjust(1, 2)
+    return kb.as_markup()
+
+
+def channel_post_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=ADMIN["channel_post_btn"], url=VIP_ADMIN_URL)
+    kb.adjust(1)
     return kb.as_markup()
 
 
@@ -170,6 +187,60 @@ def seen_kb(broadcast_id: int, lang: str) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=ADMIN["btn_seen"], callback_data=f"seen:{broadcast_id}")]
         ]
     )
+
+
+def sched_menu_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=ADMIN["sched_new_btn"], callback_data="schd:new")
+    kb.button(text=ADMIN["sched_list_btn"], callback_data="schd:list")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def sched_dest_kb(destinations: list[dict]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for d in destinations:
+        kb.button(text=f"📡 {d['title']}", callback_data=f"schd:dest:{d['id']}")
+    if destinations:
+        kb.button(text=ADMIN["dest_all_label"], callback_data="schd:dest:all")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def sched_date_kb(start: date, days: int = 7) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for i in range(days):
+        d = start + timedelta(days=i)
+        tag = f"{d.day}-{UZ_MONTHS[d.month - 1]}"
+        if i == 0:
+            label = f"📅 Bugun, {tag}"
+        elif i == 1:
+            label = f"📅 Ertaga, {tag}"
+        else:
+            label = f"{tag}, {UZ_WEEKDAYS[d.weekday()]}"
+        kb.button(text=label, callback_data=f"schd:date:{d.isoformat()}")
+    kb.adjust(2)
+    return kb.as_markup()
+
+
+def sched_hour_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for h in range(1, 25):
+        kb.button(text=f"{h:02d}:00", callback_data=f"schd:hour:{h:02d}")
+    kb.button(text=ADMIN["btn_sched_back_date"], callback_data="schd:backtodate")
+    kb.adjust(4, 4, 4, 4, 4, 4, 1)
+    return kb.as_markup()
+
+
+def sched_confirm_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=ADMIN["btn_sched_confirm"], callback_data="schd:confirm")
+    kb.button(text=ADMIN["btn_sched_edit_content"], callback_data="schd:editcontent")
+    kb.button(text=ADMIN["btn_sched_edit_dest"], callback_data="schd:editdest")
+    kb.button(text=ADMIN["btn_sched_edit_time"], callback_data="schd:edittime")
+    kb.button(text=ADMIN["btn_sched_cancel"], callback_data="schd:cancel")
+    kb.adjust(1, 2, 2)
+    return kb.as_markup()
 
 
 def views_kb(posts: list[dict]) -> InlineKeyboardMarkup:

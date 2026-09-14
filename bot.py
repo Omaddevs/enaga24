@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 from app.db import Database
 from app.handlers import setup_routers
 from app.middlewares import DbUserMiddleware, SubscriptionMiddleware
+from app.scheduler import run_scheduled_posts
 from config import settings
 
 logging.basicConfig(
@@ -58,6 +60,7 @@ async def main() -> None:
     await set_commands(bot)
     await bot.delete_webhook(drop_pending_updates=True)
     logger.info("Enaga24 bot ishga tushdi")
+    scheduler_task = asyncio.create_task(run_scheduled_posts(bot, db))
     try:
         await dp.start_polling(
             bot,
@@ -69,6 +72,9 @@ async def main() -> None:
             ],
         )
     finally:
+        scheduler_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await scheduler_task
         await db.close()
         await bot.session.close()
 

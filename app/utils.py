@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, InlineKeyboardMarkup, Message, User
 
 from app.categories import CATEGORIES
 from app.texts import t
+
+TASHKENT_TZ = timezone(timedelta(hours=5))
 
 
 def h(value: Any) -> str:
@@ -101,3 +104,93 @@ def looks_like_ad(message: Message) -> bool:
         return True
     entities = message.entities or message.caption_entities or []
     return any(e.type in {"url", "text_link"} for e in entities)
+
+
+def build_content_payload(message: Message) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "content_type": message.content_type,
+        "text": message.html_text or message.text or message.caption,
+        "file_id": None,
+        "from_chat_id": message.chat.id,
+        "from_message_id": message.message_id,
+    }
+    if message.photo:
+        payload["file_id"] = message.photo[-1].file_id
+        payload["content_type"] = "photo"
+    elif message.video:
+        payload["file_id"] = message.video.file_id
+        payload["content_type"] = "video"
+    elif message.document:
+        payload["file_id"] = message.document.file_id
+        payload["content_type"] = "document"
+    elif message.animation:
+        payload["file_id"] = message.animation.file_id
+        payload["content_type"] = "animation"
+    elif message.voice:
+        payload["file_id"] = message.voice.file_id
+        payload["content_type"] = "voice"
+    elif message.video_note:
+        payload["file_id"] = message.video_note.file_id
+        payload["content_type"] = "video_note"
+    elif message.text:
+        payload["content_type"] = "text"
+    else:
+        payload["content_type"] = "copy"
+    return payload
+
+
+async def deliver_content(
+    bot: Bot,
+    chat_id: int,
+    payload: dict[str, Any],
+    kb: InlineKeyboardMarkup | None = None,
+) -> None:
+    ctype = payload.get("content_type")
+    text = payload.get("text")
+    file_id = payload.get("file_id")
+    if ctype == "text":
+        await bot.send_message(chat_id, text or "", reply_markup=kb)
+        return
+    if ctype == "photo" and file_id:
+        await bot.send_photo(chat_id, file_id, caption=text, reply_markup=kb)
+        return
+    if ctype == "video" and file_id:
+        await bot.send_video(chat_id, file_id, caption=text, reply_markup=kb)
+        return
+    if ctype == "document" and file_id:
+        await bot.send_document(chat_id, file_id, caption=text, reply_markup=kb)
+        return
+    if ctype == "animation" and file_id:
+        await bot.send_animation(chat_id, file_id, caption=text, reply_markup=kb)
+        return
+    if ctype == "voice" and file_id:
+        await bot.send_voice(chat_id, file_id, caption=text, reply_markup=kb)
+        return
+    if ctype == "video_note" and file_id:
+        await bot.send_video_note(chat_id, file_id)
+        if kb:
+            await bot.send_message(chat_id, "👆", reply_markup=kb)
+        return
+    await bot.copy_message(
+        chat_id,
+        payload["from_chat_id"],
+        payload["from_message_id"],
+        reply_markup=kb,
+    )
+
+
+def combine_schedule_datetime(date_iso: str, hour: int) -> datetime:
+    d = datetime.strptime(date_iso, "%Y-%m-%d")
+    if hour >= 24:
+        d += timedelta(days=1)
+        hour -= 24
+    return d.replace(hour=hour, minute=0, second=0, tzinfo=TASHKENT_TZ)
+
+
+def schedule_to_utc_str(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def schedule_utc_str_to_local(value: str) -> str:
+    dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    return dt.astimezone(TASHKENT_TZ).strftime("%Y-%m-%d %H:%M")

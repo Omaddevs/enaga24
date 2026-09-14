@@ -16,6 +16,7 @@ from app.keyboards import (
     admin_kb,
     bc_confirm_kb,
     bc_target_kb,
+    channel_post_kb,
     dest_manage_kb,
     dest_pick_kb,
     listing_admin_kb,
@@ -24,7 +25,7 @@ from app.keyboards import (
 )
 from app.states import AdminSG
 from app.texts import ADMIN, t
-from app.utils import resolve_chat, user_link
+from app.utils import build_content_payload, deliver_content, resolve_chat, user_link
 from config import Settings
 
 router = Router()
@@ -359,9 +360,12 @@ async def post_listing(call: CallbackQuery, db: Database, bot: Bot) -> None:
                     dest["chat_id"],
                     listing["photo_id"],
                     caption=listing["body"][:1024],
+                    reply_markup=channel_post_kb(),
                 )
             else:
-                msg = await bot.send_message(dest["chat_id"], listing["body"])
+                msg = await bot.send_message(
+                    dest["chat_id"], listing["body"], reply_markup=channel_post_kb()
+                )
             views = getattr(msg, "views", None) or 0
             await db.add_post(listing_id, dest["id"], dest["chat_id"], msg.message_id, views)
             lines.append(ADMIN["posted"].format(title=dest["title"]))
@@ -510,17 +514,27 @@ async def refresh_views(call: CallbackQuery, db: Database, bot: Bot) -> None:
     if not post:
         await call.answer("Topilmadi", show_alert=True)
         return
-    try:
-        msg = await bot.edit_message_reply_markup(
-            chat_id=post["chat_id"],
-            message_id=post["message_id"],
-            reply_markup=None,
-        )
-        views = getattr(msg, "views", None) or 0
-        await db.set_post_views(post["id"], views)
-        await call.answer(f"👁 {views}")
-    except Exception as e:
-        await call.answer(str(e)[:180], show_alert=True)
+    # Telegram only returns a fresh Message (with `views`) when the edit actually
+    # changes something, so alternate the markup instead of always clearing it —
+    # otherwise every click after the first hits "message is not modified".
+    for markup in (None, channel_post_kb()):
+        try:
+            msg = await bot.edit_message_reply_markup(
+                chat_id=post["chat_id"],
+                message_id=post["message_id"],
+                reply_markup=markup,
+            )
+        except TelegramBadRequest as e:
+            if "not modified" in str(e).lower():
+                continue
+            await call.answer(str(e)[:180], show_alert=True)
+            return
+        else:
+            views = getattr(msg, "views", None) or 0
+            await db.set_post_views(post["id"], views)
+            await call.answer(f"👁 {views}")
+            return
+    await call.answer("Yangilanmadi", show_alert=True)
 
 
 @router.message(F.text == ADMIN["btn_broadcast"])
@@ -560,35 +574,7 @@ async def bc_next(call: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(AdminSG.bc_content)
 async def bc_content(message: Message, state: FSMContext, db: Database) -> None:
-    payload = {
-        "content_type": message.content_type,
-        "text": message.html_text or message.text or message.caption,
-        "file_id": None,
-        "from_chat_id": message.chat.id,
-        "from_message_id": message.message_id,
-    }
-    if message.photo:
-        payload["file_id"] = message.photo[-1].file_id
-        payload["content_type"] = "photo"
-    elif message.video:
-        payload["file_id"] = message.video.file_id
-        payload["content_type"] = "video"
-    elif message.document:
-        payload["file_id"] = message.document.file_id
-        payload["content_type"] = "document"
-    elif message.animation:
-        payload["file_id"] = message.animation.file_id
-        payload["content_type"] = "animation"
-    elif message.voice:
-        payload["file_id"] = message.voice.file_id
-        payload["content_type"] = "voice"
-    elif message.video_note:
-        payload["file_id"] = message.video_note.file_id
-        payload["content_type"] = "video_note"
-    elif message.text:
-        payload["content_type"] = "text"
-    else:
-        payload["content_type"] = "copy"
+    payload = build_content_payload(message)
 
     data = await state.get_data()
     n = 0
@@ -629,7 +615,7 @@ async def bc_send(call: CallbackQuery, state: FSMContext, db: Database, bot: Bot
     for kind, chat_id in targets:
         try:
             kb = seen_kb(bid, "uz") if kind == "user" else None
-            await _deliver(bot, chat_id, payload, kb)
+            await deliver_content(bot, chat_id, payload, kb)
             ok += 1
         except (TelegramBadRequest, TelegramForbiddenError):
             fail += 1
@@ -639,38 +625,3 @@ async def bc_send(call: CallbackQuery, state: FSMContext, db: Database, bot: Bot
     await db.finish_broadcast(bid, ok, fail)
     await state.clear()
     await call.message.answer(ADMIN["bc_done"].format(ok=ok, fail=fail), reply_markup=admin_kb())
-
-
-async def _deliver(bot: Bot, chat_id: int, payload: dict, kb) -> None:
-    ctype = payload.get("content_type")
-    text = payload.get("text")
-    file_id = payload.get("file_id")
-    if ctype == "text":
-        await bot.send_message(chat_id, text or "", reply_markup=kb)
-        return
-    if ctype == "photo" and file_id:
-        await bot.send_photo(chat_id, file_id, caption=text, reply_markup=kb)
-        return
-    if ctype == "video" and file_id:
-        await bot.send_video(chat_id, file_id, caption=text, reply_markup=kb)
-        return
-    if ctype == "document" and file_id:
-        await bot.send_document(chat_id, file_id, caption=text, reply_markup=kb)
-        return
-    if ctype == "animation" and file_id:
-        await bot.send_animation(chat_id, file_id, caption=text, reply_markup=kb)
-        return
-    if ctype == "voice" and file_id:
-        await bot.send_voice(chat_id, file_id, caption=text, reply_markup=kb)
-        return
-    if ctype == "video_note" and file_id:
-        await bot.send_video_note(chat_id, file_id)
-        if kb:
-            await bot.send_message(chat_id, "👆", reply_markup=kb)
-        return
-    await bot.copy_message(
-        chat_id,
-        payload["from_chat_id"],
-        payload["from_message_id"],
-        reply_markup=kb,
-    )

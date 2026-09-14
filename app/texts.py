@@ -175,6 +175,7 @@ ADMIN = {
     "btn_sub": "🔒 Majburiy obuna",
     "btn_views": "👁 Post ko'rishlari",
     "btn_admins": "👤 Adminlar",
+    "btn_sched": "🕒 Post vaqti",
     "btn_back_user": "⬅️ Asosiy menyu",
     "admins_list": (
         "<b>Adminlar</b>\n\n"
@@ -220,6 +221,7 @@ ADMIN = {
     "choose_dest": "Qaysi kanal yoki guruhga e'lon berilsin?",
     "btn_all_dest": "📢 Hammaga e'lon berish",
     "dest_post_btn": "📢 {title}",
+    "channel_post_btn": "🩷 E'lon berish",
     "posted": "Joylandi: {title}",
     "post_fail": "Xato ({title}): {err}",
     "no_dest": "Avval «Kanallar / guruhlar»ga joylash joyini qo'shing.",
@@ -264,6 +266,42 @@ ADMIN = {
     "views_empty": "Hali joylangan post yo'q.",
     "views_item": "#{id} {title}\n👁 {views}  •  {date}",
     "btn_refresh_views": "🔄 Ko'rishlarni yangilash",
+    "sched_menu": (
+        "<b>🕒 Rejalashtirilgan postlar</b>\n\n"
+        "Kanal yoki guruhga belgilangan vaqtda avtomatik chiqadigan post yarating: "
+        "matn, rasm, video yoki fayl — istalgani bo'lishi mumkin."
+    ),
+    "sched_new_btn": "➕ Yangi rejalashtirilgan post",
+    "sched_list_btn": "🗓 Ro'yxat",
+    "ask_sched_content": (
+        "📝 Yubormoqchi bo'lgan postni yuboring: matn, rasm, video yoki fayl — istalgani.\n"
+        "Bekor qilish: /cancel"
+    ),
+    "choose_sched_dest": "📡 Qaysi kanal yoki guruhga joylansin?",
+    "choose_sched_date": "🗓 Sanani tanlang:",
+    "choose_sched_hour": "🕒 Soatni tanlang (Toshkent vaqti bo'yicha):",
+    "btn_sched_back_date": "⬅️ Sanaga qaytish",
+    "sched_time_past": "❗️ Bu vaqt allaqachon o'tib ketgan. Boshqa soat yoki sanani tanlang.",
+    "sched_preview_caption": (
+        "<b>🕒 Rejalashtirilgan post (oldindan ko'rish)</b>\n\n"
+        "📡 Kanal: {dest}\n"
+        "🗓 Vaqt: {time} (Toshkent)\n\n"
+        "Hammasi to'g'ri bo'lsa — <b>Tasdiqlash</b>."
+    ),
+    "btn_sched_confirm": "✅ Tasdiqlash",
+    "btn_sched_edit_content": "✏️ Postni o'zgartirish",
+    "btn_sched_edit_dest": "📡 Kanalni o'zgartirish",
+    "btn_sched_edit_time": "🕒 Vaqtni o'zgartirish",
+    "btn_sched_cancel": "❌ Bekor qilish",
+    "dest_all_label": "📢 Barchasi",
+    "sched_created": "✅ Post rejalashtirildi (#{id}).\n🗓 {time} (Toshkent) da avtomatik joylanadi.",
+    "sched_cancelled_admin": "Bekor qilindi.",
+    "sched_list_title": "<b>🗓 Rejalashtirilgan postlar</b>\nBekor qilish uchun bosing:",
+    "sched_list_empty": "Hozircha rejalashtirilgan post yo'q.",
+    "sched_list_item": "#{id} {dest} — {time}",
+    "sched_deleted": "Rejalashtirilgan post bekor qilindi.",
+    "sched_published": "✅ Rejalashtirilgan post #{id} joylandi.\nMuvaffaqiyatli: {ok}  Xato: {fail}",
+    "sched_fail_no_dest": "❌ Rejalashtirilgan post #{id} joylanmadi: manzil topilmadi yoki o'chirilgan.",
     "stats": (
         "<b>Statistika</b>\n\n"
         "👥 Foydalanuvchilar: <b>{users}</b>\n"

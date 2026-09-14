@@ -16,3 +16,4 @@ class AdminSG(StatesGroup):
     add_admin = State()
     bc_content = State()
     bc_confirm = State()
+    sched_content = State()
