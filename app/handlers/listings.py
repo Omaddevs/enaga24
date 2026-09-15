@@ -10,7 +10,7 @@ from app.handlers.users import show_home
 from app.keyboards import listing_admin_kb, preview_kb, wizard_kb
 from app.states import ListingSG
 from app.texts import ADMIN, category_button_map, t
-from app.utils import field_prompt, render_listing, user_link
+from app.utils import field_prompt, render_listing, split_caption, user_link
 from config import Settings
 
 router = Router()
@@ -138,7 +138,12 @@ async def fill_step(message: Message, state: FSMContext, lang: str) -> None:
         photo_id = (await state.get_data()).get("photo_id")
         text = t(lang, "preview_title") + body + t(lang, "preview_hint")
         if photo_id:
-            await message.answer_photo(photo_id, caption=text[:1024], reply_markup=preview_kb(lang))
+            caption, overflow = split_caption(text)
+            if overflow:
+                await message.answer_photo(photo_id)
+                await message.answer(overflow, reply_markup=preview_kb(lang))
+            else:
+                await message.answer_photo(photo_id, caption=caption, reply_markup=preview_kb(lang))
         else:
             await message.answer(text, reply_markup=preview_kb(lang))
         return
@@ -180,10 +185,15 @@ async def confirm_listing(
         body=body,
     )
     kb = listing_admin_kb(listing_id)
+    caption, overflow = split_caption(card) if photo_id else (None, None)
     for admin_id in await db.all_admin_ids(settings.admins):
         try:
             if photo_id:
-                await bot.send_photo(admin_id, photo_id, caption=card[:1024], reply_markup=kb)
+                if overflow:
+                    await bot.send_photo(admin_id, photo_id)
+                    await bot.send_message(admin_id, overflow, reply_markup=kb)
+                else:
+                    await bot.send_photo(admin_id, photo_id, caption=caption, reply_markup=kb)
             else:
                 await bot.send_message(admin_id, card, reply_markup=kb)
         except Exception:

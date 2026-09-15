@@ -25,7 +25,7 @@ from app.keyboards import (
 )
 from app.states import AdminSG
 from app.texts import ADMIN, t
-from app.utils import build_content_payload, deliver_content, resolve_chat, user_link
+from app.utils import build_content_payload, deliver_content, resolve_chat, split_caption, user_link
 from config import Settings
 
 router = Router()
@@ -232,7 +232,12 @@ async def _send_listing_card(message: Message, db: Database, listing: dict) -> N
     )
     kb = listing_admin_kb(listing["id"])
     if listing.get("photo_id"):
-        await message.answer_photo(listing["photo_id"], caption=card[:1024], reply_markup=kb)
+        caption, overflow = split_caption(card)
+        if overflow:
+            await message.answer_photo(listing["photo_id"])
+            await message.answer(overflow, reply_markup=kb)
+        else:
+            await message.answer_photo(listing["photo_id"], caption=caption, reply_markup=kb)
     else:
         await message.answer(card, reply_markup=kb)
 
@@ -356,12 +361,19 @@ async def post_listing(call: CallbackQuery, db: Database, bot: Bot) -> None:
     for dest in targets:
         try:
             if listing.get("photo_id"):
-                msg = await bot.send_photo(
-                    dest["chat_id"],
-                    listing["photo_id"],
-                    caption=listing["body"][:1024],
-                    reply_markup=channel_post_kb(),
-                )
+                caption, overflow = split_caption(listing["body"])
+                if overflow:
+                    await bot.send_photo(dest["chat_id"], listing["photo_id"])
+                    msg = await bot.send_message(
+                        dest["chat_id"], overflow, reply_markup=channel_post_kb()
+                    )
+                else:
+                    msg = await bot.send_photo(
+                        dest["chat_id"],
+                        listing["photo_id"],
+                        caption=caption,
+                        reply_markup=channel_post_kb(),
+                    )
             else:
                 msg = await bot.send_message(
                     dest["chat_id"], listing["body"], reply_markup=channel_post_kb()

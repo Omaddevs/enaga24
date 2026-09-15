@@ -19,6 +19,19 @@ def h(value: Any) -> str:
     return html.escape(str(value or "").strip(), quote=False)
 
 
+def split_caption(text: str, limit: int = 1024) -> tuple[str, str | None]:
+    """Return (caption, overflow) so a photo caption never gets cut mid-HTML-tag.
+
+    Slicing an HTML string by raw character count can land inside a tag
+    (e.g. "<b>") and Telegram then rejects the whole request with
+    "can't parse entities". If it doesn't fit, send no caption and let the
+    caller follow up with the full text as a separate message instead.
+    """
+    if len(text) <= limit:
+        return text, None
+    return "", text
+
+
 def display_name(user: User) -> str:
     return user.full_name or user.username or str(user.id)
 
