@@ -8,6 +8,12 @@ ESLATMA = (
     "📌 Паспорт, пул, қарз, кафиллик, ҳужжатлар ва бошқа келишувлар — томонларнинг шахсий масъулияти.\n\n"
     "📎 Батафсил маълумот PDF файлда."
 )
+ESLATMA_AGREE_BTN = "✅ Roziman"
+ESLATMA_DISAGREE_BTN = "❌ Rozi emasman"
+ESLATMA_DECLINE = (
+    "Sizga qandaydir yordam kerak bo'lsa @vip_admin_channels adminga murojaat qiling "
+    "yoki qaytadan /start bosing."
+)
 
 TEXTS: dict[str, dict[str, str]] = {
     "uz": {

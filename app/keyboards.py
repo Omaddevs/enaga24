@@ -11,10 +11,11 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.texts import ADMIN, t
+from app.texts import ADMIN, ESLATMA_AGREE_BTN, ESLATMA_DISAGREE_BTN, t
 
 CHANNEL_URL = "https://t.me/enaga_1"
 VIP_ADMIN_URL = "https://t.me/vip_admin_channels"
+BOT_URL = "https://t.me/nyanya_enaga_bot"
 
 UZ_WEEKDAYS = ["Dush", "Sesh", "Chor", "Pay", "Juma", "Shan", "Yak"]
 UZ_MONTHS = [
@@ -119,8 +120,16 @@ def listing_admin_kb(listing_id: int) -> InlineKeyboardMarkup:
 
 def channel_post_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text=ADMIN["channel_post_btn"], url=VIP_ADMIN_URL)
+    kb.button(text=ADMIN["channel_post_btn"], url=BOT_URL)
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def eslatma_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=ESLATMA_AGREE_BTN, callback_data="eslatma:agree")
+    kb.button(text=ESLATMA_DISAGREE_BTN, callback_data="eslatma:disagree")
+    kb.adjust(2)
     return kb.as_markup()
 
 

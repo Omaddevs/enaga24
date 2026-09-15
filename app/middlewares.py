@@ -33,7 +33,7 @@ class DbUserMiddleware(BaseMiddleware):
 
 
 class SubscriptionMiddleware(BaseMiddleware):
-    SKIP_CB = {"lang:", "sub:", "seen:"}
+    SKIP_CB = {"lang:", "sub:", "seen:", "eslatma:"}
 
     async def __call__(
         self,

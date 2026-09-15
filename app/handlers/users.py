@@ -9,8 +9,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from app.db import Database
-from app.keyboards import home_ikb, job_ikb, lang_kb, need_ikb, sub_gate_kb
-from app.texts import ADMIN, ESLATMA, t
+from app.keyboards import eslatma_kb, home_ikb, job_ikb, lang_kb, need_ikb, sub_gate_kb
+from app.texts import ADMIN, ESLATMA, ESLATMA_DECLINE, t
 from app.utils import is_member
 
 router = Router()
@@ -35,10 +35,31 @@ async def show_home(message: Message, lang: str) -> None:
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     if ESLATMA_PDF.exists():
-        await message.answer_document(FSInputFile(ESLATMA_PDF), caption=ESLATMA)
+        await message.answer_document(
+            FSInputFile(ESLATMA_PDF), caption=ESLATMA, reply_markup=eslatma_kb()
+        )
     else:
-        await message.answer(ESLATMA)
-    await message.answer(t("uz", "choose_lang"), reply_markup=lang_kb())
+        await message.answer(ESLATMA, reply_markup=eslatma_kb())
+
+
+@router.callback_query(F.data == "eslatma:agree")
+async def eslatma_agree(call: CallbackQuery) -> None:
+    await call.answer()
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except TelegramBadRequest:
+        pass
+    await call.message.answer(t("uz", "choose_lang"), reply_markup=lang_kb())
+
+
+@router.callback_query(F.data == "eslatma:disagree")
+async def eslatma_disagree(call: CallbackQuery) -> None:
+    await call.answer()
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except TelegramBadRequest:
+        pass
+    await call.message.answer(ESLATMA_DECLINE)
 
 
 @router.callback_query(F.data.startswith("lang:"))
