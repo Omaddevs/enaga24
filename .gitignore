@@ -9,3 +9,4 @@ venv/
 .vscode/
 *.db
 *.db-journal
+*.log

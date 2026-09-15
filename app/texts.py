@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from app.categories import CATEGORY_ORDER
 
+ESLATMA = (
+    "⚠️ <b>Эслатма</b>\n\n"
+    "Канал маъмурияти иш берувчи ва иш изловчи ўртасидаги келишувлар учун жавобгар эмас.\n\n"
+    "📌 Паспорт, пул, қарз, кафиллик, ҳужжатлар ва бошқа келишувлар — томонларнинг шахсий масъулияти.\n\n"
+    "📎 Батафсил маълумот PDF файлда."
+)
+
 TEXTS: dict[str, dict[str, str]] = {
     "uz": {
         "choose_lang": "🌐 Tilni tanlang / Выберите язык",

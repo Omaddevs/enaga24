@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from app.db import Database
 from app.keyboards import home_ikb, job_ikb, lang_kb, need_ikb, sub_gate_kb
-from app.texts import ADMIN, t
+from app.texts import ADMIN, ESLATMA, t
 from app.utils import is_member
 
 router = Router()
 router.message.filter(F.chat.type == "private")
+
+ESLATMA_PDF = Path(__file__).resolve().parents[2] / "assets" / "eslatma_uzbek_rus.pdf"
 
 
 def home_text(lang: str) -> str:
@@ -30,6 +34,10 @@ async def show_home(message: Message, lang: str) -> None:
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
+    if ESLATMA_PDF.exists():
+        await message.answer_document(FSInputFile(ESLATMA_PDF), caption=ESLATMA)
+    else:
+        await message.answer(ESLATMA)
     await message.answer(t("uz", "choose_lang"), reply_markup=lang_kb())
 
 
