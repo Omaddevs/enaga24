@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ChatMemberStatus
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import Message
 
 from app.utils import looks_like_ad
@@ -27,7 +28,10 @@ def _is_service(message: Message) -> bool:
 
 @router.message(F.chat.type.in_({"group", "supergroup"}))
 async def moderate_group(message: Message, bot: Bot) -> None:
-    me = await bot.get_chat_member(message.chat.id, bot.id)
+    try:
+        me = await bot.get_chat_member(message.chat.id, bot.id)
+    except (TelegramBadRequest, TelegramForbiddenError):
+        return
     if me.status not in {ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR}:
         return
     if not getattr(me, "can_delete_messages", True):
@@ -43,7 +47,12 @@ async def moderate_group(message: Message, bot: Bot) -> None:
     user = message.from_user
     if not user:
         return
-    member = await bot.get_chat_member(message.chat.id, user.id)
+    try:
+        member = await bot.get_chat_member(message.chat.id, user.id)
+    except (TelegramBadRequest, TelegramForbiddenError):
+        # Anonymous group admins post as a synthetic user Telegram won't
+        # resolve via get_chat_member; treat as admin and skip moderation.
+        return
     if member.status in {ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR}:
         return
 

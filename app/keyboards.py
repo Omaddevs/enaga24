@@ -17,6 +17,28 @@ CHANNEL_URL = "https://t.me/enaga_1"
 VIP_ADMIN_URL = "https://t.me/vip_admin_channels"
 BOT_URL = "https://t.me/nyanya_enaga_bot"
 
+# Telegram Bot API inline tugmalarning fon rangini o'zgartirishga imkon bermaydi
+# (bu klient temasi bilan boshqariladi), shuning uchun "pink style" pushti
+# emoji bilan taqlid qilinadi. Bu yerda barcha InlineKeyboardButton'lar uchun
+# markazlashtirilgan, mavjud kodni buzmaydigan integratsiya qilingan.
+PINK_MARK = "🩷"
+
+
+def pinkify(text: str) -> str:
+    if not text or text.startswith(PINK_MARK):
+        return text
+    return f"{PINK_MARK} {text}"
+
+
+_original_inline_button = InlineKeyboardBuilder.button
+
+
+def _pink_inline_button(self, *, text: str, **kwargs):
+    return _original_inline_button(self, text=pinkify(text), **kwargs)
+
+
+InlineKeyboardBuilder.button = _pink_inline_button
+
 UZ_WEEKDAYS = ["Dush", "Sesh", "Chor", "Pay", "Juma", "Shan", "Yak"]
 UZ_MONTHS = [
     "yanv", "fev", "mart", "apr", "may", "iyun",
@@ -193,7 +215,11 @@ def bc_confirm_kb() -> InlineKeyboardMarkup:
 def seen_kb(broadcast_id: int, lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=ADMIN["btn_seen"], callback_data=f"seen:{broadcast_id}")]
+            [
+                InlineKeyboardButton(
+                    text=pinkify(ADMIN["btn_seen"]), callback_data=f"seen:{broadcast_id}"
+                )
+            ]
         ]
     )
 
